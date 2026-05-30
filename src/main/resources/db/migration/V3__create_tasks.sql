@@ -1,0 +1,13 @@
+CREATE TABLE IF NOT EXISTS tasks
+(
+    id          BIGINT AUTO_INCREMENT PRIMARY KEY,
+    title       VARCHAR(255) NOT NULL,
+    description TEXT,
+    status      VARCHAR(50)  NOT NULL DEFAULT 'TODO',
+    priority    VARCHAR(50)  NOT NULL DEFAULT 'MEDIUM',
+    due_date    DATE,
+    project_id  BIGINT       NOT NULL,
+    created_at  DATETIME(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at  DATETIME(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+    FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE CASCADE
+);

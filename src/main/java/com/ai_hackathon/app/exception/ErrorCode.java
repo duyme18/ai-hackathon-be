@@ -14,6 +14,13 @@ public enum ErrorCode {
     // Resource
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "User not found"),
 
+    // Domain
+    PROJECT_NOT_FOUND(HttpStatus.NOT_FOUND, "Project not found"),
+    TASK_NOT_FOUND(HttpStatus.NOT_FOUND, "Task not found"),
+    TAG_NOT_FOUND(HttpStatus.NOT_FOUND, "Tag not found"),
+    SPEC_FILE_NOT_FOUND(HttpStatus.NOT_FOUND, "Spec file not found"),
+    CHAT_MESSAGE_NOT_FOUND(HttpStatus.NOT_FOUND, "Chat message not found"),
+
     // Generic
     BAD_REQUEST(HttpStatus.BAD_REQUEST, "Bad request"),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error");

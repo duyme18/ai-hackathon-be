@@ -1,0 +1,14 @@
+CREATE TABLE IF NOT EXISTS spec_files
+(
+    id         BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name       VARCHAR(255) NOT NULL,
+    status     VARCHAR(50)  NOT NULL DEFAULT 'DRAFT',
+    file_url   VARCHAR(500),
+    file_name  VARCHAR(255),
+    file_type  VARCHAR(100),
+    file_size  BIGINT,
+    tag_id     BIGINT       NOT NULL,
+    created_at DATETIME(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at DATETIME(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+    FOREIGN KEY (tag_id) REFERENCES tags (id) ON DELETE CASCADE
+);
