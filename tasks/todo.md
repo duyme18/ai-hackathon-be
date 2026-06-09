@@ -1,29 +1,29 @@
-# Todo: AI Hackathon Base Project
+# Todo: System Parameters Feature
 
-## Phase 1: Infrastructure Foundation
+## Phase 1: Foundation
 
-- [ ] **Task 1** — Add Maven dependencies (`pom.xml`: web, jpa, security, validation, mariadb, jjwt, springdoc, flyway, lombok, jacoco)
-- [ ] **Task 2** — Configure `application.yaml` (datasource, JPA, Flyway, JWT) + create `application-local.yaml` + update `.gitignore`
-- [ ] **Task 3** — Flyway `V1__init_users.sql` + `User` entity + `UserRepository`
+- [x] **Task 1** — Flyway migrations V7 (system_parameters) + V8 (command_parameter_mappings stub)
+- [x] **Task 2** — SystemParameter entity + ErrorCode additions (NOT_FOUND, KEY_EXISTS, IN_USE)
 
-**Checkpoint 1:** App starts and connects to MariaDB; `users` table exists
+### Checkpoint 1
+- [x] Build pass + App starts + Flyway V7/V8 Applied
 
-## Phase 2: First Live Endpoint
+## Phase 2: Repository + DTOs
 
-- [ ] **Task 4** — `ApiResponse<T>` + `ErrorCode` + `AppException` + `GlobalExceptionHandler` + `HealthController` + `Constants`
+- [x] **Task 3** — SystemParameterRepository (search JPQL + in-use query) + SystemParameterRequest + SystemParameterResponse + SystemParameterInUseResponse + PageResponse DTOs
 
-**Checkpoint 2:** `GET /api/v1/health` → 200 JSON; invalid body → structured 400
+## Phase 3: Service + Controller
 
-## Phase 3: JWT Auth
+- [x] **Task 4** — SystemParameterService interface + SystemParameterServiceImpl (full business logic)
+- [x] **Task 5** — SystemParameterController (6 endpoints + Swagger annotations) + tests (54 pass)
 
-- [ ] **Task 5** — `JwtTokenProvider` + `JwtAuthFilter` + `UserDetailsServiceImpl`
-- [ ] **Task 6** — `SecurityConfig` + `OpenApiConfig` + auth DTOs (`LoginRequest`, `RegisterRequest`, `AuthResponse`)
-- [ ] **Task 7** — `AuthService` interface + `AuthServiceImpl` + `AuthController`
+### Checkpoint 2
+- [x] Build pass + CRUD endpoints working + validation errors correct
 
-**Checkpoint 3:** Full register → login → token flow works; Swagger UI up
+## Phase 4: Documentation
 
-## Phase 4: Tests
+- [x] **Task 6** — output/API.md (API documentation)
+- [x] **Task 7** — output/DB-DESIGN.md (database design documentation)
 
-- [ ] **Task 8** — `AuthServiceTest` (Mockito) + `AuthControllerTest` (@WebMvcTest)
-
-**Checkpoint 4 (Done):** `./mvnw test` green; coverage ≥ 70%
+### Checkpoint 3
+- [x] All success criteria in SPEC-system-parameters.md met

@@ -21,6 +21,11 @@ public enum ErrorCode {
     SPEC_FILE_NOT_FOUND(HttpStatus.NOT_FOUND, "Spec file not found"),
     CHAT_MESSAGE_NOT_FOUND(HttpStatus.NOT_FOUND, "Chat message not found"),
 
+    // System Parameters
+    SYSTEM_PARAMETER_NOT_FOUND(HttpStatus.NOT_FOUND, "System parameter not found"),
+    SYSTEM_PARAMETER_KEY_EXISTS(HttpStatus.CONFLICT, "System parameter key already exists"),
+    SYSTEM_PARAMETER_IN_USE(HttpStatus.CONFLICT, "System parameter is in use and cannot be modified"),
+
     // Generic
     BAD_REQUEST(HttpStatus.BAD_REQUEST, "Bad request"),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error");
