@@ -1,0 +1,6 @@
+projectKey=Tendoo-Web-ReactJS
+serverUrl=https://scan.gem-corp.tech
+serverVersion=25.10.0.114319
+dashboardUrl=https://scan.gem-corp.tech/dashboard?id=Tendoo-Web-ReactJS
+ceTaskId=c3f90a5e-e754-4cac-8a01-3c11956609a1
+ceTaskUrl=https://scan.gem-corp.tech/api/ce/task?id=c3f90a5e-e754-4cac-8a01-3c11956609a1

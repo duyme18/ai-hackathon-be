@@ -1,0 +1,53 @@
+{
+  "enabledMcpjsonServers": ["jira", "figma"],
+  "permissions": {
+    "allow": [
+      "Read(**)",
+      "Edit(**)",
+      "Write(**)",
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git branch *)",
+      "Bash(git checkout *)",
+      "Bash(git stash *)",
+      "Bash(ls *)",
+      "Bash(ls -la *)",
+      "Bash(find * -name *)",
+      "Bash(cat *)",
+      "Bash(mkdir *)",
+      "Bash(cd be && *)",
+      "Bash(cd fe && *)",
+      "Bash(./mvnw *)",
+      "Bash(npm install)",
+      "Bash(npm run *)",
+      "Bash(npx *)",
+      "Bash(bun install)",
+      "Bash(bun run *)",
+      "Bash(mvn *)",
+      "Bash(curl -s -H * https://scan.gem-corp.tech/api/*)",
+      "Bash(curl -s https://scan.gem-corp.tech/api/*)",
+      "Bash(gh pr create *)",
+      "Bash(gh pr edit *)",
+      "Bash(gh pr list *)",
+      "Bash(gh pr view *)",
+      "Bash(gh pr merge *)",
+      "Bash(gh api *)",
+      "Bash(gh auth status)",
+      "Bash(git push -u origin *)",
+      "Bash(git push origin *)"
+    ],
+    "deny": [
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Bash(rm -rf *)",
+      "Bash(git push --force *)",
+      "Bash(git reset --hard *)",
+      "Bash(git clean -f *)",
+      "Bash(git push origin master *)",
+      "Bash(git push origin main *)"
+    ]
+  }
+}
