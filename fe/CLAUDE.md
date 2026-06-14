@@ -1,183 +1,357 @@
-# CLAUDE.md
+# fe/CLAUDE.md — Tendoo AI Frontend
 
-## Project Overview
+React 18 + TypeScript + Vite + Tailwind CSS + shadcn/ui admin portal.
 
-Tendoo AI Admin Portal
+---
 
-This project is an admin dashboard built with:
-- React
-- TypeScript
-- Vite
-- Tailwind CSS
-- shadcn/ui
-- TanStack Router if already present in the codebase
+## Stack
 
-Claude must treat the existing UI as the source of truth unless a Figma/spec file says otherwise.
+| Mục | Chi tiết |
+|-----|---------|
+| Framework | React 18 + TypeScript + Vite |
+| UI | Tailwind CSS + shadcn/ui (`src/components/ui/`) |
+| Routing | TanStack Router (`router.tsx`) |
+| Server state | TanStack Query (`useQuery`, `useMutation`) |
+| Forms | react-hook-form + zod |
+| Icons | lucide-react |
+| Tests | Vitest + @testing-library/react + jsdom |
+| Coverage | @vitest/coverage-v8 → LCOV → SonarQube |
 
-## Main Goals
+---
 
-- Keep the current UI visually consistent.
-- Improve maintainability and component reuse.
-- Support Light Mode, Dark Mode, and System theme.
-- Use semantic design tokens instead of hard-coded colors.
-- Keep code TypeScript-safe and production-ready.
+## Cấu trúc thư mục
 
-## Project Structure
-
-Expected structure:
-
-```txt
+```
 src/
 ├── components/
-│   ├── app/
-│   └── ui/
-├── hooks/
+│   ├── app/          # AppLayout, AppHeader, Sidebar
+│   ├── ui/           # shadcn/ui primitives — KHÔNG tự ý sửa
+│   └── <feature>/    # feature-scoped components
+├── hooks/            # useDebounce, useSystemParameters, ...
 ├── lib/
-├── routes/
-├── router.tsx
-├── routeTree.gen.ts
-├── styles.css
-└── server.ts
+│   ├── api/          # apiFetch wrapper + per-resource functions
+│   └── utils.ts      # cn()
+├── pages/            # Page-level components
+├── types/            # TypeScript interfaces
+└── test/             # Mirror của src/ — *.test.ts(x)
+    ├── components/
+    ├── hooks/
+    ├── lib/
+    └── pages/
 ```
 
-## UI Rules
+---
 
-- Use reusable components whenever possible.
-- Prefer existing shadcn/ui components before creating new UI components.
-- Do not duplicate layout logic.
-- Do not hard-code theme colors like `#ffffff`, `#000000`, `text-gray-*`, or `bg-white` for themed surfaces.
-- Use semantic classes such as:
-  - `bg-background`
-  - `text-foreground`
-  - `bg-card`
-  - `text-card-foreground`
-  - `border-border`
-  - `text-muted-foreground`
-  - `bg-primary`
-  - `text-primary-foreground`
-- Preserve spacing, typography, and layout from the current UI unless explicitly asked to change.
+## TypeScript Rules
 
-## Theme Rules
+### Không dùng `any`
+```ts
+// ❌
+function handle(data: any) { ... }
 
-Implement or maintain a theme system with:
+// ✅
+function handle(data: SystemParameter) { ... }
+```
 
-- `ThemeProvider`
-- `useTheme` hook
-- Theme values:
-  - `light`
-  - `dark`
-  - `system`
-- Persist selected theme in `localStorage`.
-- Apply theme by toggling the `dark` class on the root HTML element.
-- Add a theme toggle in the top-right area of the header.
-- Prefer icons:
-  - Sun for light mode
-  - Moon for dark mode
-  - Monitor/System icon for system mode if needed
+### Props phải có explicit interface + Readonly
+```tsx
+// ❌
+function Modal({ open, onClose }) { ... }
 
-## Component Guidelines
+// ✅
+interface ModalProps {
+  open: boolean
+  onClose: () => void
+}
+export function Modal({ open, onClose }: Readonly<ModalProps>) { ... }
+```
+> Lý do: SonarQube S6759 — function params phải immutable
 
-- Components should be functional React components.
-- Props must use explicit TypeScript interfaces or types.
-- Avoid `any` unless absolutely necessary.
-- Keep components focused and small.
-- Move shared logic into hooks.
-- Move utility logic into `src/lib`.
-- Avoid deeply nested JSX when a child component would make the code clearer.
+### Không dùng non-null assertion `!`
+```tsx
+// ❌ — S4325
+return <Link to={item.path!}>
 
-## Routing Rules
+// ✅ — null guard trước
+if (!item.path) return null
+return <Link to={item.path}>
+```
 
-- Do not change routes unless the task requires it.
-- If TanStack Router is used, follow the existing route pattern.
-- Do not manually edit generated route files unless the project requires it.
+### Regex phải có unicode flag `u`
+```ts
+// ❌ — S7781
+.replaceAll(/[^A-Z0-9_]/g, '')
+
+// ✅
+.replaceAll(/[^A-Z0-9_]/gu, '')
+```
+
+---
+
+## React Rules
+
+### Key trong list — không dùng index
+```tsx
+// ❌ — S6479
+items.map((item, i) => <Row key={i} />)
+
+// ✅ — dùng id từ data
+items.map((item) => <Row key={item.id} />)
+
+// ✅ — nếu không có id, tạo const key array trước
+const SKELETON_KEYS = ['sk-1', 'sk-2', 'sk-3'] as const
+SKELETON_KEYS.map((key) => <Skeleton key={key} />)
+```
+
+### Không lồng ternary — extract render function
+```tsx
+// ❌ — S3358 (4 levels nesting)
+{isLoading ? <Skeleton /> : isError ? <Error /> : rows.length === 0 ? <Empty /> : <Table />}
+
+// ✅ — extract ra function
+const renderBody = () => {
+  if (isLoading) return <Skeleton />
+  if (isError) return <Error />
+  if (rows.length === 0) return <Empty />
+  return <Table />
+}
+// JSX:
+{renderBody()}
+```
+
+### Không lồng template literal
+```ts
+// ❌ — S4624
+return apiFetch(`${BASE}?${query.toString()}`)
+
+// ✅ — extract trước
+const qs = query.toString()
+const url = qs ? `${BASE}?${qs}` : BASE
+return apiFetch(url)
+```
+
+### `for...of` thay vì `.forEach()`
+```ts
+// ❌ — S7728
+listeners.forEach((l) => l(state))
+
+// ✅
+for (const l of listeners) { l(state) }
+```
+
+### `Number.isFinite` thay vì global `isFinite`
+```ts
+// ❌ — S7773
+if (isFinite(Number(val))) ...
+
+// ✅
+if (Number.isFinite(Number(val))) ...
+```
+
+---
 
 ## Styling Rules
 
-- Use Tailwind CSS utilities.
-- Use semantic tokens from `styles.css`.
-- Update CSS variables for light/dark themes instead of hard-coding colors in components.
-- Keep responsive behavior consistent:
-  - Desktop first for admin layout
-  - Tablet support
-  - Mobile fallback where practical
+**Không hardcode màu** — chỉ dùng semantic tokens:
 
-## Before Editing Code
+| Dùng khi nào | Token |
+|-------------|-------|
+| Background trang | `bg-background` |
+| Card / panel | `bg-card`, `text-card-foreground` |
+| Text chính | `text-foreground` |
+| Text phụ | `text-muted-foreground` |
+| Border | `border-border` |
+| Primary button | `bg-primary`, `text-primary-foreground` |
+| Destructive | `text-destructive`, `bg-destructive` |
+| Sidebar | `bg-sidebar`, `text-sidebar-foreground` |
 
-Claude should always:
+```tsx
+// ❌
+<div className="bg-white text-gray-700 border-gray-200">
 
-1. Read the relevant files first.
-2. Identify existing patterns.
-3. Create a short implementation plan.
-4. Reuse existing components where possible.
-5. Make small, safe edits.
-
-## When Implementing Figma/Spec
-
-When a Figma file, screenshot, or spec is provided:
-
-1. Analyze the layout structure.
-2. Identify reusable components.
-3. Map colors to semantic tokens.
-4. Implement responsive behavior.
-5. Preserve visual hierarchy.
-6. Mock missing data only when necessary and clearly mention it.
-
-## Quality Checklist
-
-Before finishing, run or suggest running:
-
-```bash
-npm run build
-npm run lint
+// ✅
+<div className="bg-card text-card-foreground border-border">
 ```
 
-If the project uses Bun:
+---
 
-```bash
-bun run build
-bun run lint
+## Table Rules (shadcn/ui)
+
+`TableHead` mặc định đã có `scope="col"` — KHÔNG thêm thủ công, không override:
+
+```tsx
+// ✅ — src/components/ui/table.tsx đã handle
+<TableHead>Tên cấu hình</TableHead>
 ```
 
-Check manually:
+---
 
-- No TypeScript errors.
-- Theme toggle works.
-- Theme persists after refresh.
-- Light mode is readable.
-- Dark mode is readable.
-- Sidebar and header still work.
-- No layout regressions.
+## API Layer
 
-## Common Tasks
+### Pattern chuẩn
+```ts
+// src/lib/api/system-parameters.ts
+const BASE = '/api/v1/system-parameters'
 
-### Add Light/Dark Mode
+export async function listSystemParameters(params: ListParams) {
+  const query = new URLSearchParams()
+  if (params.keyword) query.set('keyword', params.keyword)
+  query.set('page', String(params.page ?? 0))
+  const qs = query.toString()
+  const url = qs ? `${BASE}?${qs}` : BASE   // không lồng template literal
+  return apiFetch<PageResponse<SystemParameter>>(url)
+}
+```
 
-- Check existing theme implementation first.
-- Add or update `ThemeProvider`.
-- Add a toggle in `TopHeader.tsx`.
-- Update `styles.css` semantic tokens.
-- Replace hard-coded theme colors in app components.
+### Error handling trong mutation
+```ts
+try {
+  await mutation.mutateAsync(data)
+  toast({ title: 'Thành công', description: '...' })
+  onSuccess()
+} catch (err) {
+  if (err instanceof ApiError && err.status === 409) {
+    toast({ title: 'Lỗi', description: err.message, variant: 'destructive' })
+  } else if (err instanceof ApiError) {
+    toast({ title: 'Lỗi', description: err.message, variant: 'destructive' })
+  } else {
+    toast({ title: 'Lỗi', description: 'Đã có lỗi xảy ra', variant: 'destructive' })
+  }
+}
+```
 
-### Refactor UI
+---
 
-- Do not rewrite the entire app unnecessarily.
-- Refactor one component at a time.
-- Keep behavior unchanged.
-- Remove duplication only when safe.
+## Testing Rules
 
-### Generate New UI From Spec
+### Vị trí file test
+```
+src/test/[mirror-path]/[filename].test.ts(x)
 
-- First create a component breakdown.
-- Then implement layout.
-- Then add interactions.
-- Then polish theme and responsive behavior.
+# Ví dụ:
+src/components/system-parameters/DeleteConfirmDialog.tsx
+→ src/test/components/DeleteConfirmDialog.test.tsx
+```
 
-## Communication Style
+### Setup chuẩn cho component test
+```tsx
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { createElement } from 'react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
-When responding:
+// Mock API modules (không mock hooks trực tiếp)
+vi.mock('@/lib/api/system-parameters', () => ({
+  deleteSystemParameter: vi.fn(),
+}))
 
-- Be concise.
-- Explain what changed.
-- Mention files edited.
-- Mention commands to verify.
-- Clearly call out assumptions or missing information.
+// Mock toast
+vi.mock('@/components/ui/use-toast', () => ({
+  toast: vi.fn(),
+}))
+
+// Mock router nếu component dùng navigate
+vi.mock('@tanstack/react-router', () => ({
+  useRouter: () => ({ navigate: vi.fn() }),
+  Link: ({ children, to }: { children: React.ReactNode; to: string }) =>
+    createElement('a', { href: to }, children),
+}))
+
+// QueryClient wrapper — retry: false để test nhanh
+function wrapper({ children }: { children: React.ReactNode }) {
+  const qc = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  })
+  return createElement(QueryClientProvider, { client: qc }, children)
+}
+
+beforeEach(() => { vi.clearAllMocks() })
+```
+
+### Phải test đủ các path này
+```
+✅ Happy path: render đúng, call API đúng
+✅ Error path: ApiError 409, ApiError non-409, generic Error
+✅ Callback props: onClose, onSuccess được gọi đúng lúc
+✅ Null/empty data: param=null, list=[]
+✅ Loading state: skeleton hiện đúng
+✅ Validation: form không submit khi invalid
+```
+
+### Coverage config (vite.config.ts)
+```ts
+coverage: {
+  provider: 'v8',
+  reporter: ['lcov', 'text'],
+  reportsDirectory: './coverage',
+  include: ['src/**/*.{ts,tsx}'],
+  exclude: [
+    'src/test/**',
+    'src/components/ui/**',   // shadcn/ui primitives — không test
+    'src/main.tsx',
+    'src/router.tsx',
+    'src/types/**',
+  ],
+}
+```
+
+---
+
+## SonarQube
+
+### Scan command (với coverage)
+```bash
+# Bước 1 — generate LCOV
+npm run test:coverage
+
+# Bước 2 — scan
+npx sonar-scanner \
+  "-Dsonar.host.url=https://scan.gem-corp.tech" \
+  "-Dsonar.token=<TOKEN>" \
+  "-Dsonar.projectKey=Tendoo-Web-ReactJS" \
+  "-Dsonar.sources=src" \
+  "-Dsonar.exclusions=node_modules/**,dist/**,src/test/**" \
+  "-Dsonar.javascript.lcov.reportPaths=coverage/lcov.info" \
+  "-Dsonar.coverage.exclusions=src/components/ui/**,src/main.tsx,src/router.tsx,src/types/**"
+```
+
+### Quality Gate thresholds
+- `new_coverage` ≥ 80% ← quan trọng nhất
+- `new_violations` = 0
+- `new_duplicated_lines_density` ≤ 3%
+
+### Rules hay vi phạm
+
+| Rule | Vấn đề | Fix |
+|------|---------|-----|
+| S6759 | Props không Readonly | `Readonly<Props>` |
+| S6479 | key = array index | key = item.id hoặc const key array |
+| S3358 | Ternary lồng nhau | Extract render function |
+| S4624 | Template literal lồng | Extract variable trước |
+| S7781 | Regex thiếu `/u` flag | Thêm `u` → `/pattern/gu` |
+| S7728 | `.forEach()` | `for...of` |
+| S7773 | `isFinite()` global | `Number.isFinite()` |
+| S4325 | Non-null `!` | Null guard: `if (!x) return null` |
+| S5256 | `<th>` thiếu scope | Default `scope="col"` trong TableHead |
+| S1854 | Dead store | Xóa assignment thừa |
+| S1481 | Unused variable | Xóa hoặc prefix `_` |
+
+---
+
+## Verify trước khi done
+
+```bash
+cd fe && npm run build        # 0 TypeScript errors
+npm run test:coverage         # coverage ≥ 80%
+```
+
+Checklist:
+- [ ] Build pass, 0 TS errors
+- [ ] `Readonly<Props>` trên tất cả component params
+- [ ] Không có array index làm key
+- [ ] Không có nested ternary > 2 levels
+- [ ] Regex có `/gu` flag
+- [ ] `Number.isFinite` thay vì `isFinite`
+- [ ] `for...of` thay vì `.forEach()`
+- [ ] Coverage ≥ 80% trên files mới
+- [ ] Test cover đủ: happy + error + callback paths

@@ -1,4 +1,5 @@
 {
+  "enabledMcpjsonServers": ["jira", "figma"],
   "permissions": {
     "allow": [
       "Read(**)",
@@ -25,7 +26,18 @@
       "Bash(npx *)",
       "Bash(bun install)",
       "Bash(bun run *)",
-      "Bash(mvn *)"
+      "Bash(mvn *)",
+      "Bash(curl -s -H * https://scan.gem-corp.tech/api/*)",
+      "Bash(curl -s https://scan.gem-corp.tech/api/*)",
+      "Bash(gh pr create *)",
+      "Bash(gh pr edit *)",
+      "Bash(gh pr list *)",
+      "Bash(gh pr view *)",
+      "Bash(gh pr merge *)",
+      "Bash(gh api *)",
+      "Bash(gh auth status)",
+      "Bash(git push -u origin *)",
+      "Bash(git push origin *)"
     ],
     "deny": [
       "Read(**/.env)",

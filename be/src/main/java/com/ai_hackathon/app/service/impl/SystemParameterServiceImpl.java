@@ -39,6 +39,7 @@ public class SystemParameterServiceImpl implements SystemParameterService {
             throw new AppException(ErrorCode.SYSTEM_PARAMETER_KEY_EXISTS);
         }
         SystemParameter parameter = SystemParameter.builder()
+                .name(request.getName())
                 .key(request.getKey())
                 .value(request.getValue())
                 .description(request.getDescription())
@@ -53,6 +54,7 @@ public class SystemParameterServiceImpl implements SystemParameterService {
         if (repository.isInUse(id)) {
             throw new AppException(ErrorCode.SYSTEM_PARAMETER_IN_USE);
         }
+        parameter.setName(request.getName());
         parameter.setKey(request.getKey());
         parameter.setValue(request.getValue());
         parameter.setDescription(request.getDescription());

@@ -8,7 +8,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -20,12 +19,13 @@ import { ApiError } from '@/lib/api/client'
 import type { SystemParameter } from '@/types/system-parameter'
 
 const schema = z.object({
+  name: z.string().min(1, 'Tên cấu hình là bắt buộc'),
   key: z
     .string()
-    .min(1, 'Đây là thông tin bắt buộc')
+    .min(1, 'Mã cấu hình là bắt buộc')
     .max(20, 'Tối đa 20 ký tự')
     .regex(/^[A-Z0-9_]+$/, 'Chỉ chấp nhận chữ hoa, số và dấu gạch dưới'),
-  value: z.string().min(1, 'Đây là thông tin bắt buộc'),
+  value: z.string().min(1, 'Giá trị là bắt buộc'),
   description: z.string().optional(),
 })
 
@@ -45,7 +45,7 @@ export function SystemParameterFormModal({
   initialData,
   onClose,
   onSuccess,
-}: SystemParameterFormModalProps) {
+}: Readonly<SystemParameterFormModalProps>) {
   const {
     register,
     handleSubmit,
@@ -55,7 +55,7 @@ export function SystemParameterFormModal({
     watch,
   } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { key: '', value: '', description: '' },
+    defaultValues: { name: '', key: '', value: '', description: '' },
   })
 
   const createMutation = useCreateSystemParameter()
@@ -66,25 +66,28 @@ export function SystemParameterFormModal({
     if (open) {
       if (mode === 'edit' && initialData) {
         reset({
+          name: initialData.name ?? '',
           key: initialData.key,
           value: initialData.value,
           description: initialData.description ?? '',
         })
       } else {
-        reset({ key: '', value: '', description: '' })
+        reset({ name: '', key: '', value: '', description: '' })
       }
     }
   }, [open, mode, initialData, reset])
 
   const keyValue = watch('key')
+
   const handleKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setValue('key', e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, ''), {
+    setValue('key', e.target.value.toUpperCase().replaceAll(/[^A-Z0-9_]/gu, ''), {
       shouldValidate: true,
     })
   }
+
   const handleKeyPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
     e.preventDefault()
-    const pasted = e.clipboardData.getData('text').toUpperCase().replace(/[^A-Z0-9_]/g, '')
+    const pasted = e.clipboardData.getData('text').toUpperCase().replaceAll(/[^A-Z0-9_]/gu, '')
     setValue('key', (keyValue + pasted).slice(0, 20), { shouldValidate: true })
   }
 
@@ -92,10 +95,10 @@ export function SystemParameterFormModal({
     try {
       if (mode === 'create') {
         await createMutation.mutateAsync(data)
-        toast({ title: 'Thành công', description: 'Tham số đã được tạo thành công' })
+        toast({ title: 'Thành công', description: 'Cấu hình đã được tạo thành công' })
       } else {
         await updateMutation.mutateAsync({ id: initialData!.id, data })
-        toast({ title: 'Thành công', description: 'Tham số đã được cập nhật' })
+        toast({ title: 'Thành công', description: 'Cấu hình đã được cập nhật' })
       }
       onSuccess()
     } catch (err) {
@@ -104,11 +107,11 @@ export function SystemParameterFormModal({
           if (err.message.toLowerCase().includes('in use')) {
             toast({
               title: 'Không thể sửa',
-              description: 'Tham số đã được sử dụng, không thể sửa',
+              description: 'Tham số đang được sử dụng, không thể chỉnh sửa',
               variant: 'destructive',
             })
           } else {
-            toast({ title: 'Lỗi', description: 'Tham số đã tồn tại', variant: 'destructive' })
+            toast({ title: 'Lỗi', description: 'Mã cấu hình đã tồn tại', variant: 'destructive' })
           }
         } else {
           toast({ title: 'Lỗi', description: err.message, variant: 'destructive' })
@@ -119,16 +122,35 @@ export function SystemParameterFormModal({
     }
   }
 
+  const title = mode === 'create' ? 'Thêm mới cấu hình hệ thống' : 'Chỉnh sửa cấu hình hệ thống'
+
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose() }}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-[560px]">
         <DialogHeader>
-          <DialogTitle>{mode === 'create' ? 'Thêm tham số mới' : 'Sửa tham số'}</DialogTitle>
+          <DialogTitle className="text-base font-semibold">{title}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-2">
+
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-1">
+          {/* Tên cấu hình */}
+          <div className="space-y-1.5">
+            <Label htmlFor="name">
+              Tên cấu hình <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="name"
+              {...register('name')}
+              placeholder="Nhập tên cấu hình..."
+            />
+            {errors.name && (
+              <p className="text-xs text-destructive">{errors.name.message}</p>
+            )}
+          </div>
+
+          {/* Mã cấu hình */}
           <div className="space-y-1.5">
             <Label htmlFor="key">
-              Tên tham số <span className="text-destructive">*</span>
+              Mã cấu hình <span className="text-destructive">*</span>
             </Label>
             <Input
               id="key"
@@ -145,40 +167,41 @@ export function SystemParameterFormModal({
             )}
           </div>
 
+          {/* Giá trị */}
           <div className="space-y-1.5">
             <Label htmlFor="value">
               Giá trị <span className="text-destructive">*</span>
             </Label>
-            <Textarea
+            <Input
               id="value"
               {...register('value')}
               placeholder="Nhập giá trị..."
-              rows={3}
             />
             {errors.value && (
               <p className="text-xs text-destructive">{errors.value.message}</p>
             )}
           </div>
 
+          {/* Mô tả */}
           <div className="space-y-1.5">
             <Label htmlFor="description">Mô tả</Label>
             <Textarea
               id="description"
               {...register('description')}
-              placeholder="Mô tả tham số (không bắt buộc)..."
-              rows={2}
+              placeholder="Mô tả cấu hình (không bắt buộc)..."
+              rows={3}
             />
           </div>
 
-          <DialogFooter className="gap-2 pt-2">
+          <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={onClose} disabled={isPending}>
-              Huỷ
+              Hủy bỏ
             </Button>
             <Button type="submit" disabled={isPending}>
               {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
               Lưu
             </Button>
-          </DialogFooter>
+          </div>
         </form>
       </DialogContent>
     </Dialog>

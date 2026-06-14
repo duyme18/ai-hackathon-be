@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "jira": {
+      "type": "http",
+      "url": "http://172.16.10.95:8000/mcp",
+      "headers": {
+        "Authorization": "Bearer ${JIRA_MCP_TOKEN}"
+      }
+    },
+    "figma": {
+      "command": "npx",
+      "args": ["-y", "figma-mcp"],
+      "env": {
+        "FIGMA_API_KEY": "figd_M0TL8zD5CiXc0vnHRj-HqvZLEsRrPi3PQGaDOsL8"
+      }
+    }
+  }
+}

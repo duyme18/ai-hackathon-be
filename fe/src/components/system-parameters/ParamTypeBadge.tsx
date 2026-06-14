@@ -5,7 +5,7 @@ export type ParamType = 'Boolean' | 'Number' | 'Text'
 export function inferParamType(value: string): ParamType {
   const lower = value.toLowerCase().trim()
   if (['true', 'false', '0', '1'].includes(lower)) return 'Boolean'
-  if (lower !== '' && isFinite(Number(lower))) return 'Number'
+  if (lower !== '' && Number.isFinite(Number(lower))) return 'Number'
   return 'Text'
 }
 
@@ -20,7 +20,7 @@ interface ParamTypeBadgeProps {
   className?: string
 }
 
-export function ParamTypeBadge({ value, className }: ParamTypeBadgeProps) {
+export function ParamTypeBadge({ value, className }: Readonly<ParamTypeBadgeProps>) {
   const type = inferParamType(value)
   return (
     <span

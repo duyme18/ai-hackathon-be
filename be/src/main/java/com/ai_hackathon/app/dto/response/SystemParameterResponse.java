@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 public class SystemParameterResponse {
 
     private Long id;
+    private String name;
     private String key;
     private String value;
     private String description;
@@ -20,6 +21,7 @@ public class SystemParameterResponse {
     public static SystemParameterResponse from(SystemParameter p) {
         return SystemParameterResponse.builder()
                 .id(p.getId())
+                .name(p.getName())
                 .key(p.getKey())
                 .value(p.getValue())
                 .description(p.getDescription())

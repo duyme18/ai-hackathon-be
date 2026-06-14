@@ -1,5 +1,5 @@
-import { useState, useCallback } from 'react'
-import { Plus, ArrowUpDown, ArrowUp, ArrowDown, Pencil, Trash2, SearchX, DatabaseZap } from 'lucide-react'
+import { useState } from 'react'
+import { Plus, Pencil, Trash2, SearchX, DatabaseZap, Search, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -18,49 +18,33 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Skeleton } from '@/components/ui/skeleton'
-import { toast } from '@/components/ui/use-toast'
-import { ParamTypeBadge, inferParamType } from '@/components/system-parameters/ParamTypeBadge'
 import { SystemParameterFormModal } from '@/components/system-parameters/SystemParameterFormModal'
 import { DeleteConfirmDialog } from '@/components/system-parameters/DeleteConfirmDialog'
 import { useSystemParameterList } from '@/hooks/useSystemParameters'
 import { useDebounce } from '@/hooks/useDebounce'
-import { checkInUse } from '@/lib/api/system-parameters'
-import { ApiError } from '@/lib/api/client'
 import type { SystemParameter } from '@/types/system-parameter'
-import type { ParamType } from '@/components/system-parameters/ParamTypeBadge'
-
-type SortState = 'default' | 'key,asc' | 'key,desc'
 
 const PAGE_SIZES = [10, 20, 50]
+const SKELETON_ROW_KEYS = ['sk-r1', 'sk-r2', 'sk-r3', 'sk-r4', 'sk-r5'] as const
+const SKELETON_COL_KEYS = ['sk-c1', 'sk-c2', 'sk-c3', 'sk-c4', 'sk-c5', 'sk-c6'] as const
 
 export function SystemParametersPage() {
   const [keyword, setKeyword] = useState('')
   const debouncedKeyword = useDebounce(keyword, 300)
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(10)
-  const [sort, setSort] = useState<SortState>('default')
-  const [typeFilter, setTypeFilter] = useState<'all' | ParamType>('all')
 
   const [createOpen, setCreateOpen] = useState(false)
   const [editParam, setEditParam] = useState<SystemParameter | null>(null)
   const [deleteParam, setDeleteParam] = useState<SystemParameter | null>(null)
-  const [checkingId, setCheckingId] = useState<number | null>(null)
 
-  const { data, isLoading, isError, error } = useSystemParameterList({
+  const { data, isLoading, isError } = useSystemParameterList({
     keyword: debouncedKeyword || undefined,
     page,
     size: pageSize,
-    sort: sort === 'default' ? 'createdAt,desc' : sort,
   })
 
-  if (isError && error) {
-    const msg = error instanceof ApiError ? error.message : 'Đã có lỗi xảy ra'
-    toast({ title: 'Lỗi', description: msg, variant: 'destructive' })
-  }
-
-  const allRows = data?.content ?? []
-  const filteredRows =
-    typeFilter === 'all' ? allRows : allRows.filter((p) => inferParamType(p.value) === typeFilter)
+  const rows = data?.content ?? []
   const totalElements = data?.totalElements ?? 0
   const totalPages = data?.totalPages ?? 1
 
@@ -74,226 +58,195 @@ export function SystemParametersPage() {
     setPage(0)
   }
 
-  const handleSortToggle = () => {
-    setSort((prev) => {
-      if (prev === 'key,asc') return 'key,desc'
-      return 'key,asc'
-    })
-    setPage(0)
-  }
-
-  const handleEditClick = useCallback(async (param: SystemParameter) => {
-    setCheckingId(param.id)
-    try {
-      const result = await checkInUse(param.id)
-      if (result.inUse) {
-        toast({
-          title: 'Không thể sửa',
-          description: 'Tham số đã được sử dụng, không thể sửa',
-          variant: 'destructive',
-        })
-      } else {
-        setEditParam(param)
-      }
-    } catch {
-      toast({ title: 'Lỗi', description: 'Không kiểm tra được trạng thái tham số', variant: 'destructive' })
-    } finally {
-      setCheckingId(null)
-    }
-  }, [])
-
-  const handleDeleteClick = useCallback(async (param: SystemParameter) => {
-    setCheckingId(param.id)
-    try {
-      const result = await checkInUse(param.id)
-      if (result.inUse) {
-        toast({
-          title: 'Không thể xoá',
-          description: 'Tham số đã được sử dụng, không thể xoá',
-          variant: 'destructive',
-        })
-      } else {
-        setDeleteParam(param)
-      }
-    } catch {
-      toast({ title: 'Lỗi', description: 'Không kiểm tra được trạng thái tham số', variant: 'destructive' })
-    } finally {
-      setCheckingId(null)
-    }
-  }, [])
-
   const handleDeleteSuccess = () => {
     setDeleteParam(null)
-    if (filteredRows.length === 1 && page > 0) {
+    if (rows.length === 1 && page > 0) {
       setPage((p) => p - 1)
     }
   }
 
-  const SortIcon = sort === 'key,asc' ? ArrowUp : sort === 'key,desc' ? ArrowDown : ArrowUpDown
+  const renderTableBody = () => {
+    if (isLoading) {
+      return SKELETON_ROW_KEYS.map((rowKey) => (
+        <TableRow key={rowKey}>
+          {SKELETON_COL_KEYS.map((colKey) => (
+            <TableCell key={colKey}><Skeleton className="h-5 w-full" /></TableCell>
+          ))}
+        </TableRow>
+      ))
+    }
+    if (isError) {
+      return (
+        <TableRow>
+          <TableCell colSpan={6}>
+            <div className="flex flex-col items-center justify-center py-12 gap-2 text-destructive">
+              <span className="text-sm">Không thể tải dữ liệu. Vui lòng thử lại.</span>
+            </div>
+          </TableCell>
+        </TableRow>
+      )
+    }
+    if (rows.length === 0) {
+      return (
+        <TableRow>
+          <TableCell colSpan={6}>
+            <div className="flex flex-col items-center justify-center py-14 gap-3 text-muted-foreground">
+              {keyword ? (
+                <>
+                  <SearchX className="h-10 w-10 opacity-40" />
+                  <span className="text-sm">Không có kết quả phù hợp</span>
+                </>
+              ) : (
+                <>
+                  <DatabaseZap className="h-10 w-10 opacity-40" />
+                  <span className="text-sm">Chưa có dữ liệu, bạn hãy tạo mới</span>
+                  <Button variant="outline" size="sm" onClick={() => setCreateOpen(true)}>
+                    <Plus className="h-4 w-4" /> Thêm mới
+                  </Button>
+                </>
+              )}
+            </div>
+          </TableCell>
+        </TableRow>
+      )
+    }
+    return rows.map((param, idx) => (
+      <TableRow key={param.id}>
+        <TableCell className="text-muted-foreground text-sm text-center">
+          {page * pageSize + idx + 1}
+        </TableCell>
+        <TableCell className="text-sm font-medium">
+          {param.name ?? <span className="text-muted-foreground/50">—</span>}
+        </TableCell>
+        <TableCell className="font-mono text-sm">{param.key}</TableCell>
+        <TableCell className="text-sm">{param.value}</TableCell>
+        <TableCell className="text-sm text-muted-foreground">
+          {param.description ? (
+            <span className="line-clamp-2" title={param.description}>
+              {param.description}
+            </span>
+          ) : (
+            <span className="text-muted-foreground/40">—</span>
+          )}
+        </TableCell>
+        <TableCell className="text-center">
+          <div className="flex items-center justify-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setEditParam(param)}
+              title="Sửa"
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setDeleteParam(param)}
+              title="Xoá"
+              className="text-destructive hover:text-destructive"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        </TableCell>
+      </TableRow>
+    ))
+  }
 
   return (
     <div className="p-6 space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-foreground">Danh mục tham số</h1>
-        <Button onClick={() => setCreateOpen(true)}>
-          <Plus className="h-4 w-4" />
-          Thêm mới
-        </Button>
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+        <span>Quản lý danh mục</span>
+        <ChevronRight className="h-3.5 w-3.5" />
+        <span className="font-semibold text-foreground">Cấu hình hệ thống</span>
       </div>
 
-      <div className="flex items-center gap-3">
-        <Input
-          placeholder="Tìm kiếm theo tên hoặc mô tả..."
-          value={keyword}
-          onChange={handleKeywordChange}
-          className="max-w-sm"
-        />
-        <Select value={typeFilter} onValueChange={(v) => { setTypeFilter(v as typeof typeFilter); setPage(0) }}>
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="Tất cả kiểu dữ liệu" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tất cả kiểu dữ liệu</SelectItem>
-            <SelectItem value="Boolean">Boolean</SelectItem>
-            <SelectItem value="Number">Number</SelectItem>
-            <SelectItem value="Text">Text</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      {/* Card */}
+      <div className="rounded-lg border border-border bg-card shadow-sm">
+        {/* Toolbar */}
+        <div className="flex items-center justify-between gap-3 p-4 border-b border-border">
+          <div className="relative flex-1 max-w-[500px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <Input
+              placeholder="Tìm kiếm tên, mã cấu hình..."
+              value={keyword}
+              onChange={handleKeywordChange}
+              className="pl-9"
+            />
+          </div>
+          <Button onClick={() => setCreateOpen(true)}>
+            <Plus className="h-4 w-4" />
+            Thêm mới
+          </Button>
+        </div>
 
-      <div className="rounded-md border bg-card">
+        {/* Table */}
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-16">STT</TableHead>
-              <TableHead>
-                <button
-                  onClick={handleSortToggle}
-                  className="flex items-center gap-1 hover:text-foreground transition-colors"
-                >
-                  Tên tham số
-                  <SortIcon className="h-3.5 w-3.5" />
-                </button>
-              </TableHead>
-              <TableHead className="w-32">Kiểu dữ liệu</TableHead>
+              <TableHead className="w-[56px]">STT</TableHead>
+              <TableHead>Tên cấu hình</TableHead>
+              <TableHead className="w-[180px]">Mã cấu hình</TableHead>
+              <TableHead className="w-[160px]">Giá trị</TableHead>
               <TableHead>Mô tả</TableHead>
-              <TableHead className="w-24 text-right">Thao tác</TableHead>
+              <TableHead className="w-[110px] text-center">Thao tác</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <TableRow key={i}>
-                  {Array.from({ length: 5 }).map((__, j) => (
-                    <TableCell key={j}><Skeleton className="h-5 w-full" /></TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : filteredRows.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5}>
-                  <div className="flex flex-col items-center justify-center py-12 gap-3 text-muted-foreground">
-                    {keyword || typeFilter !== 'all' ? (
-                      <>
-                        <SearchX className="h-10 w-10" />
-                        <span>Không tìm thấy kết quả phù hợp</span>
-                      </>
-                    ) : (
-                      <>
-                        <DatabaseZap className="h-10 w-10" />
-                        <span>Chưa có tham số nào</span>
-                        <Button variant="outline" size="sm" onClick={() => setCreateOpen(true)}>
-                          <Plus className="h-4 w-4" /> Thêm mới
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredRows.map((param, idx) => (
-                <TableRow key={param.id}>
-                  <TableCell className="text-muted-foreground text-sm">
-                    {page * pageSize + idx + 1}
-                  </TableCell>
-                  <TableCell className="font-mono font-medium">{param.key}</TableCell>
-                  <TableCell>
-                    <ParamTypeBadge value={param.value} />
-                  </TableCell>
-                  <TableCell className="max-w-xs text-muted-foreground text-sm">
-                    {param.description ? (
-                      <span className="line-clamp-2" title={param.description}>
-                        {param.description}
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground/50">—</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        disabled={checkingId === param.id}
-                        onClick={() => handleEditClick(param)}
-                        title="Sửa"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        disabled={checkingId === param.id}
-                        onClick={() => handleDeleteClick(param)}
-                        title="Xoá"
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
+            {renderTableBody()}
           </TableBody>
         </Table>
-      </div>
 
-      <div className="flex items-center justify-between text-sm text-muted-foreground">
-        <span>Tổng số: <strong className="text-foreground">{totalElements}</strong> bản ghi</span>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <span>Hiển thị</span>
+        {/* Pagination */}
+        <div className="flex items-center justify-between border-t border-border px-4 py-3 text-sm text-muted-foreground">
+          <span>
+            Tổng số: <strong className="text-foreground">{totalElements}</strong> bản ghi
+          </span>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+                disabled={page === 0 || isLoading}
+              >
+                &lt;
+              </Button>
+              {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i).map((pageNum) => (
+                <Button
+                  key={pageNum}
+                  variant={page === pageNum ? 'default' : 'outline'}
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={() => setPage(pageNum)}
+                  disabled={isLoading}
+                >
+                  {pageNum + 1}
+                </Button>
+              ))}
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                disabled={page >= totalPages - 1 || isLoading}
+              >
+                &gt;
+              </Button>
+            </div>
             <Select value={String(pageSize)} onValueChange={handlePageSizeChange}>
-              <SelectTrigger className="w-20 h-8">
+              <SelectTrigger className="w-[100px] h-8">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {PAGE_SIZES.map((s) => (
-                  <SelectItem key={s} value={String(s)}>{s}</SelectItem>
+                  <SelectItem key={s} value={String(s)}>{s}/trang</SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <span>/ trang</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage((p) => Math.max(0, p - 1))}
-              disabled={page === 0 || isLoading}
-            >
-              &lt;
-            </Button>
-            <span className="px-3 py-1 text-sm">{page + 1}</span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-              disabled={page >= totalPages - 1 || isLoading}
-            >
-              &gt;
-            </Button>
           </div>
         </div>
       </div>
@@ -318,8 +271,6 @@ export function SystemParametersPage() {
         param={deleteParam}
         onClose={() => setDeleteParam(null)}
         onSuccess={handleDeleteSuccess}
-        currentPage={page}
-        itemsOnPage={filteredRows.length}
       />
     </div>
   )

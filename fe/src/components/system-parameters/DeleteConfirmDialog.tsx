@@ -18,8 +18,6 @@ interface DeleteConfirmDialogProps {
   param: SystemParameter | null
   onClose: () => void
   onSuccess: () => void
-  currentPage: number
-  itemsOnPage: number
 }
 
 export function DeleteConfirmDialog({
@@ -27,7 +25,7 @@ export function DeleteConfirmDialog({
   param,
   onClose,
   onSuccess,
-}: DeleteConfirmDialogProps) {
+}: Readonly<DeleteConfirmDialogProps>) {
   const deleteMutation = useDeleteSystemParameter()
 
   const handleConfirm = async () => {
@@ -56,14 +54,14 @@ export function DeleteConfirmDialog({
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose() }}>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle>Xác nhận xoá</DialogTitle>
+          <DialogTitle>Xác nhận xóa</DialogTitle>
           <DialogDescription>
-            Bạn có chắc muốn xoá tham số <strong>{param?.key}</strong>? Hành động này không thể hoàn tác.
+            Bạn có chắc muốn xóa cấu hình <strong>{param?.key}</strong>? Hành động này không thể hoàn tác.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter className="gap-2 pt-2">
           <Button variant="outline" onClick={onClose} disabled={deleteMutation.isPending}>
-            Huỷ
+            Hủy bỏ
           </Button>
           <Button
             variant="destructive"

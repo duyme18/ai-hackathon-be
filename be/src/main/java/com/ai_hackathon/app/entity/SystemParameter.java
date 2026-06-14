@@ -18,8 +18,11 @@ public class SystemParameter {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 20)
+    @Column(name = "param_key", nullable = false, unique = true, length = 20)
     private String key;
+
+    @Column(length = 255)
+    private String name;
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String value;

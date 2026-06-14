@@ -1,5 +1,6 @@
 export interface SystemParameter {
   id: number
+  name: string | null
   key: string
   value: string
   description: string | null
@@ -8,6 +9,7 @@ export interface SystemParameter {
 }
 
 export interface SystemParameterRequest {
+  name: string
   key: string
   value: string
   description?: string
@@ -35,5 +37,4 @@ export interface ListSystemParametersParams {
   keyword?: string
   page?: number
   size?: number
-  sort?: string
 }

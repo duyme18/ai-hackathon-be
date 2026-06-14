@@ -7,16 +7,16 @@ import type {
   ListSystemParametersParams,
 } from '@/types/system-parameter'
 
-const BASE = '/api/system-parameters'
+const BASE = '/api/v1/system-parameters'
 
 export function listSystemParameters(params: ListSystemParametersParams = {}) {
   const query = new URLSearchParams()
   if (params.keyword) query.set('keyword', params.keyword)
   if (params.page !== undefined) query.set('page', String(params.page))
   if (params.size !== undefined) query.set('size', String(params.size))
-  if (params.sort) query.set('sort', params.sort)
   const qs = query.toString()
-  return apiFetch<PageResponse<SystemParameter>>(`${BASE}${qs ? `?${qs}` : ''}`)
+  const url = qs ? `${BASE}?${qs}` : BASE
+  return apiFetch<PageResponse<SystemParameter>>(url)
 }
 
 export function getSystemParameter(id: number) {

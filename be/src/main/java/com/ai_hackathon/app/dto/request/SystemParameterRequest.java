@@ -8,6 +8,9 @@ import lombok.Getter;
 @Getter
 public class SystemParameterRequest {
 
+    @NotBlank(message = "Tên cấu hình là bắt buộc")
+    private String name;
+
     @NotBlank(message = "Key is required")
     @Pattern(regexp = "^[A-Z0-9_]+$", message = "Key must contain only uppercase letters, digits, and underscores")
     @Size(max = 20, message = "Key must not exceed 20 characters")
